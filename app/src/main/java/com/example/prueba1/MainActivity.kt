@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+//Volando
 val Color1 = Color(0xFF884385) // #884385
 val Color2 = Color(0xFF6A3265) // #6a3265
 val Color3 = Color(0xFF4D2146) // #4d2146
