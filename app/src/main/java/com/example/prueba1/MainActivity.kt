@@ -44,6 +44,11 @@ class MainActivity : ComponentActivity() {
                     composable("notas"){GestorNotas(navController)}
 
                     composable("historial_sueno") { HistorialSueno(navController) }
+                    composable("espejo") { Espejo(navController) }
+                    composable("tiempo_tareas") { TiempoTareas(navController) }
+
+
+
                 }
             }
         }
@@ -141,8 +146,30 @@ fun PantallaInicial(navController: NavHostController) {
                     Text("Notas")
                 }
             }
+
+            Button(
+                onClick = { navController.navigate("notas") },
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorBoton2,
+                    contentColor = Color.White
+                )
+            ) {
+                Text("tiempo_tareas")
+            }
+            Button(
+                onClick = { navController.navigate("notas") },
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorBoton2,
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Espejo")
+            }
+        }
         }
     }
-}
+
 
 
