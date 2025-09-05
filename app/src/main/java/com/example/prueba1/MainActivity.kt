@@ -136,7 +136,7 @@ fun PantallaInicial(navController: NavHostController) {
                 }
 
                 Button(
-                    onClick = { navController.navigate("notas") },
+                    onClick = { navController.navigate("tiempo_tareas") },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colorBoton2,
@@ -146,7 +146,7 @@ fun PantallaInicial(navController: NavHostController) {
                     Text("tiempo_tareas")
                 }
                 Button(
-                    onClick = { navController.navigate("notas") },
+                    onClick = { navController.navigate("espejo") },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colorBoton2,

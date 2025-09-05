@@ -10,10 +10,10 @@
       </SelectionState>
       <SelectionState runConfigName="Gestor">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-09-05T21:08:59.507019300Z">
+        <DropdownSelection timestamp="2025-09-05T21:24:27.040420Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\kedua\.android\avd\Pixel_7.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\kedua\.android\avd\Medium_Phone.avd" />
             </handle>
           </Target>
         </DropdownSelection>
