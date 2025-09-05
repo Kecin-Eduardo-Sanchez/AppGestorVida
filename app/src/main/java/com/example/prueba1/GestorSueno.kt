@@ -99,7 +99,7 @@ fun GestorSueno(navController: NavHostController) {
                     modifier = Modifier.weight(1f)
                 )
             }
-
+                // juan estubo aqui
             Spacer(modifier = Modifier.height(10.dp))
 
             // Menú desplegable para tipo de sueño
