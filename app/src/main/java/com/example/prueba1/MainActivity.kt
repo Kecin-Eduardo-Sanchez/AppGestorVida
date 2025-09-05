@@ -143,29 +143,30 @@ fun PantallaInicial(navController: NavHostController) {
                         contentColor = Color.White
                     )
                 ) {
+                    Text("tiempo_tareas")
+                }
+                Button(
+                    onClick = { navController.navigate("notas") },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorBoton2,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Espejo")
+                }
+
+                Button(
+                    onClick = { navController.navigate("notas") },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorBoton2,
+                        contentColor = Color.White
+                    )
+                ) {
                     Text("Notas")
                 }
-            }
 
-            Button(
-                onClick = { navController.navigate("notas") },
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorBoton2,
-                    contentColor = Color.White
-                )
-            ) {
-                Text("tiempo_tareas")
-            }
-            Button(
-                onClick = { navController.navigate("notas") },
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorBoton2,
-                    contentColor = Color.White
-                )
-            ) {
-                Text("Espejo")
             }
         }
         }
