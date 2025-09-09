@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -75,12 +77,13 @@ fun GestorFinanzas(navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("Gestor de Finanzas", color = Color.White)
+                title = { Text("Gestor Finanzas") },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = FinanzasColor1),
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = FinanzasColor1)
+                }
             )
         }
     ) { padding ->
