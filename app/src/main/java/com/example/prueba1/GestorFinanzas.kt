@@ -1,5 +1,3 @@
-package com.example.prueba1
-
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,16 +13,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.prueba1.FinanzasBDHelper
 import java.text.NumberFormat
 import java.util.*
 
-// 🎨 Colores
+// --- Tus colores y función de formato (sin cambios) ---
 val FinanzasColor1 = Color(0xFF771D76)
 val FinanzasColor2 = Color(0xFF923790)
 val FinanzasColor3 = Color(0xFFAD51AA)
 val FinanzasColor4 = Color(0xFFC76AC3)
 val FinanzasColor5 = Color(0xFFE284DD)
-val Color6 = Color(0xFF120007) // fondo general
+val Color6 = Color(0xFF120007)
 
 fun formatoPesosColombianos(valor: Float): String {
     val formato = NumberFormat.getCurrencyInstance(Locale("es", "CO"))
@@ -36,12 +35,16 @@ fun formatoPesosColombianos(valor: Float): String {
 @Composable
 fun GestorFinanzas(navController: NavHostController) {
     val context = LocalContext.current
-    val db = remember { FinanzasBDHelper(context) }
+    // --- CORRECCIÓN 1: Usar el patrón Singleton ---
+    // Obtenemos la instancia única del helper en lugar de crear una nueva.
+    val db = remember { FinanzasBDHelper.getInstance(context) }
 
+    // El estado se mantiene igual
     var categorias by remember { mutableStateOf(listOf<String>()) }
     var saldos by remember { mutableStateOf(mapOf<String, Float>()) }
     var categoriaSeleccionada by remember { mutableStateOf("") }
 
+    // ... el resto de tus variables de estado se mantienen igual
     var textoMonto by remember { mutableStateOf("") }
     var montoNumerico by remember { mutableStateOf<Float?>(null) }
     var descripcion by remember { mutableStateOf("") }
@@ -52,27 +55,31 @@ fun GestorFinanzas(navController: NavHostController) {
     var nuevoNombre by remember { mutableStateOf(TextFieldValue("")) }
     var nuevaCategoria by remember { mutableStateOf(TextFieldValue("")) }
 
+    // --- CORRECCIÓN 2: Simplificar la carga de datos ---
+    // La UI no debe interactuar directamente con la base de datos.
+    // Usamos el método que ya creamos en el Helper.
     fun actualizarDatos() {
-        val dbRead = db.readableDatabase
-        val cursor = dbRead.rawQuery("SELECT nombre, saldo FROM categorias", null)
-        val nuevaLista = mutableListOf<String>()
-        val nuevoMapa = mutableMapOf<String, Float>()
+        val datos = db.obtenerCategoriasConSaldos() // Llama al método del helper
+        categorias = datos.map { it.first }
+        saldos = datos.toMap()
 
-        while (cursor.moveToNext()) {
-            val nombre = cursor.getString(0)
-            val saldo = cursor.getFloat(1)
-            nuevaLista.add(nombre)
-            nuevoMapa[nombre] = saldo
-        }
-        cursor.close()
-        categorias = nuevaLista
-        saldos = nuevoMapa
-        if (categorias.isNotEmpty() && categoriaSeleccionada.isEmpty()) {
+        // Lógica para asegurar que siempre haya una categoría seleccionada si la lista no está vacía
+        if (categorias.isNotEmpty() && (categoriaSeleccionada.isEmpty() || !categorias.contains(
+                categoriaSeleccionada
+            ))
+        ) {
             categoriaSeleccionada = categorias.first()
         }
     }
 
-    LaunchedEffect(Unit) { actualizarDatos() }
+    // LaunchedEffect se mantiene, carga los datos al iniciar
+    LaunchedEffect(Unit) {
+        actualizarDatos()
+    }
+
+    // El resto de tu UI (Scaffold, Cards, etc.) es mayormente igual.
+    // Los cambios están en los `onClick` de los botones para asegurar que todo funcione
+    // con la nueva lógica.
 
     Scaffold(
         topBar = {
@@ -87,6 +94,8 @@ fun GestorFinanzas(navController: NavHostController) {
             )
         }
     ) { padding ->
+        // --- El resto del código de la UI es idéntico al tuyo ---
+        // Lo incluyo para que sea un bloque completo y funcional.
         Box(
             modifier = Modifier
                 .padding(padding)
@@ -100,7 +109,7 @@ fun GestorFinanzas(navController: NavHostController) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // --- Resumen ---
+                // ... Tu Card de Resumen (sin cambios)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = FinanzasColor4),
@@ -111,16 +120,25 @@ fun GestorFinanzas(navController: NavHostController) {
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Resumen Actual", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                        Text(
+                            "Resumen Actual",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
+                        )
                         Divider(color = Color.White.copy(alpha = 0.4f))
 
-                        saldos.forEach { (categoria, saldo) ->
-                            Text("$categoria: ${formatoPesosColombianos(saldo)}", color = Color.White)
+                        // Usamos los datos ordenados que vienen del helper
+                        saldos.entries.toList().forEach { (categoria, saldo) ->
+                            Text(
+                                "$categoria: ${formatoPesosColombianos(saldo)}",
+                                color = Color.White
+                            )
                         }
                     }
                 }
 
-                // --- Formulario ---
+
+                // ... Tu Card de Formulario (sin cambios en la apariencia)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = FinanzasColor3),
@@ -133,15 +151,16 @@ fun GestorFinanzas(navController: NavHostController) {
                     ) {
                         Text("Agregar Movimiento", color = Color.White)
 
-                        // Selección categoría
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Categoría:", color = Color.White)
                             Spacer(Modifier.width(8.dp))
                             Box {
                                 Button(onClick = { expanded = true }) {
-                                    Text(categoriaSeleccionada)
+                                    Text(if (categoriaSeleccionada.isNotEmpty()) categoriaSeleccionada else "Seleccionar")
                                 }
-                                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }) {
                                     categorias.forEach {
                                         DropdownMenuItem(
                                             text = { Text(it) },
@@ -155,14 +174,14 @@ fun GestorFinanzas(navController: NavHostController) {
                             }
                         }
 
-                        // Campo monto
                         OutlinedTextField(
                             value = textoMonto,
                             onValueChange = {
                                 val limpio = it.replace(Regex("[^\\d]"), "")
                                 val valor = limpio.toFloatOrNull()
                                 montoNumerico = valor
-                                textoMonto = if (valor != null) formatoPesosColombianos(valor) else ""
+                                textoMonto =
+                                    if (valor != null) formatoPesosColombianos(valor) else ""
                             },
                             label = { Text("Monto en COP") },
                             singleLine = true,
@@ -172,7 +191,6 @@ fun GestorFinanzas(navController: NavHostController) {
                             )
                         )
 
-                        // Campo descripción
                         OutlinedTextField(
                             value = descripcion,
                             onValueChange = { descripcion = it },
@@ -184,20 +202,34 @@ fun GestorFinanzas(navController: NavHostController) {
                             )
                         )
 
-                        // Botones
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Button(
                                 onClick = {
-                                    if (montoNumerico != null && categoriaSeleccionada.isNotEmpty()) {
-                                        db.agregarMovimiento(categoriaSeleccionada, "ingreso", montoNumerico!!, descripcion)
+                                    if (montoNumerico != null && montoNumerico!! > 0 && categoriaSeleccionada.isNotEmpty()) {
+                                        db.agregarMovimiento(
+                                            categoriaSeleccionada,
+                                            "ingreso",
+                                            montoNumerico!!,
+                                            descripcion
+                                        )
                                         actualizarDatos()
                                         textoMonto = ""
+                                        montoNumerico = null
                                         descripcion = ""
+                                        Toast.makeText(
+                                            context,
+                                            "Ingreso registrado",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     } else {
-                                        Toast.makeText(context, "Monto inválido", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Monto o categoría inválidos",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
@@ -208,13 +240,28 @@ fun GestorFinanzas(navController: NavHostController) {
 
                             Button(
                                 onClick = {
-                                    if (montoNumerico != null && categoriaSeleccionada.isNotEmpty()) {
-                                        db.agregarMovimiento(categoriaSeleccionada, "gasto", montoNumerico!!, descripcion)
+                                    if (montoNumerico != null && montoNumerico!! > 0 && categoriaSeleccionada.isNotEmpty()) {
+                                        db.agregarMovimiento(
+                                            categoriaSeleccionada,
+                                            "gasto",
+                                            montoNumerico!!,
+                                            descripcion
+                                        )
                                         actualizarDatos()
                                         textoMonto = ""
+                                        montoNumerico = null
                                         descripcion = ""
+                                        Toast.makeText(
+                                            context,
+                                            "Gasto registrado",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     } else {
-                                        Toast.makeText(context, "Monto inválido", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Monto o categoría inválidos",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
@@ -224,12 +271,15 @@ fun GestorFinanzas(navController: NavHostController) {
                             }
                         }
 
-                        // Botones de categoría
+                        // Botones de categoría (sin cambios)
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(
                                 onClick = { mostrarDialogoModificar = true },
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = FinanzasColor3, contentColor = Color.White),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = FinanzasColor3,
+                                    contentColor = Color.White
+                                ),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Modificar Categoría")
@@ -237,7 +287,10 @@ fun GestorFinanzas(navController: NavHostController) {
                             Button(
                                 onClick = { mostrarDialogoAgregar = true },
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = FinanzasColor4, contentColor = Color.White),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = FinanzasColor4,
+                                    contentColor = Color.White
+                                ),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Agregar Categoría")
@@ -246,11 +299,14 @@ fun GestorFinanzas(navController: NavHostController) {
                     }
                 }
 
-                // Botón volver
+                // ... Tu botón de volver (sin cambios)
                 Button(
                     onClick = { navController.navigate("home") },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = FinanzasColor1, contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = FinanzasColor1,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Volver al inicio")
                 }
@@ -258,7 +314,7 @@ fun GestorFinanzas(navController: NavHostController) {
         }
     }
 
-    // --- Diálogo modificar categoría ---
+    // --- CORRECCIÓN 3: Asegurar que el diálogo de modificar usa el método público del helper ---
     if (mostrarDialogoModificar) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoModificar = false },
@@ -273,30 +329,49 @@ fun GestorFinanzas(navController: NavHostController) {
                     )
                 }
             },
+// En GestorFinanzas.kt, dentro de `if (mostrarDialogoModificar)`
+
             confirmButton = {
                 Button(onClick = {
+                    // --- CÓDIGO CORREGIDO ---
+                    // Ahora llamamos a la versión pública que devuelve Long.
+                    // Ya no es necesario (y es incorrecto) convertir a Int.
                     val idCat = db.obtenerIdCategoria(categoriaSeleccionada)
-                    val exito = db.modificarCategoria(idCat, nuevoNombre.text.trim())
-                    if (exito) {
-                        Toast.makeText(context, "Categoría modificada", Toast.LENGTH_SHORT).show()
-                        actualizarDatos()
+
+                    // `modificarCategoria` ahora espera un Long, así que todo coincide.
+                    if (idCat > 0) {
+                        val exito = db.modificarCategoria(idCat, nuevoNombre.text.trim())
+                        if (exito) {
+                            Toast.makeText(context, "Categoría modificada", Toast.LENGTH_SHORT)
+                                .show()
+                            actualizarDatos()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "No se puede modificar. Nombre duplicado o categoría protegida.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     } else {
-                        Toast.makeText(context, "No se puede modificar esta categoría", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Error al encontrar la categoría.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                     mostrarDialogoModificar = false
-                }) {
-                    Text("Guardar")
-                }
+                    nuevoNombre = TextFieldValue("")
+                }) { Text("Guardar") }
             },
             dismissButton = {
-                Button(onClick = { mostrarDialogoModificar = false }) {
-                    Text("Cancelar")
-                }
+                Button(onClick = {
+                    mostrarDialogoModificar = false
+                }) { Text("Cancelar") }
             }
         )
     }
 
-    // --- Diálogo agregar categoría ---
+    // --- Diálogo agregar categoría (sin cambios de lógica) ---
     if (mostrarDialogoAgregar) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoAgregar = false },
@@ -318,22 +393,22 @@ fun GestorFinanzas(navController: NavHostController) {
                             Toast.makeText(context, "Categoría agregada", Toast.LENGTH_SHORT).show()
                             actualizarDatos()
                         } else {
-                            Toast.makeText(context, "Error: ya existe", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Error: la categoría ya existe",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                     mostrarDialogoAgregar = false
                     nuevaCategoria = TextFieldValue("")
-                }) {
-                    Text("Guardar")
-                }
+                }) { Text("Guardar") }
             },
             dismissButton = {
                 Button(onClick = {
                     mostrarDialogoAgregar = false
                     nuevaCategoria = TextFieldValue("")
-                }) {
-                    Text("Cancelar")
-                }
+                }) { Text("Cancelar") }
             }
         )
     }

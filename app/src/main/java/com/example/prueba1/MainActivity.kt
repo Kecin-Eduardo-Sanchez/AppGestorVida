@@ -1,5 +1,6 @@
 package com.example.prueba1
 
+import GestorFinanzas
 import android.R.attr.background
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -34,6 +35,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
+
+annotation class GestorFinanzas
 
 //Volando
 val Color1 = Color(0xFF884385) // #884385

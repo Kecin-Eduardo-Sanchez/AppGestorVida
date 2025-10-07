@@ -1,5 +1,6 @@
 package com.example.prueba1
 
+import FinanzasColor1
 import android.database.sqlite.SQLiteDatabase
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

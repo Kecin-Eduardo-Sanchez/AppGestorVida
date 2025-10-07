@@ -9,8 +9,24 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// Se ha añadido el patrón Singleton para asegurar una única instancia de la base de datos.
 class FinanzasBDHelper(context: Context) :
     SQLiteOpenHelper(context, "Finanzas.db", null, 2) {
+
+    // --- INICIO: Implementación del patrón Singleton ---
+    companion object {
+        @Volatile
+        private var INSTANCE: FinanzasBDHelper? = null
+
+        fun getInstance(context: Context): FinanzasBDHelper {
+            return INSTANCE ?: synchronized(this) {
+                val instance = FinanzasBDHelper(context.applicationContext)
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+    // --- FIN: Implementación del patrón Singleton ---
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
@@ -44,7 +60,7 @@ class FinanzasBDHelper(context: Context) :
         val values = ContentValues().apply {
             put("nombre", nombre)
             put("es_fija", if (fija) 1 else 0)
-            put("saldo", 0f)
+            put("saldo", 0.0) // Es mejor usar 0.0 para Reales/Doubles
         }
         db.insert("categorias", null, values)
     }
@@ -56,18 +72,19 @@ class FinanzasBDHelper(context: Context) :
     }
 
     fun agregarMovimiento(categoria: String, tipo: String, monto: Float, descripcion: String) {
-        val db = writableDatabase
+        // Obtenemos una única instancia de la base de datos para toda la operación.
+        val db = this.writableDatabase
         db.beginTransaction()
         try {
+            // Obtenemos o creamos el ID de la categoría
             var categoriaId = obtenerIdCategoria(categoria, db)
-            if (categoriaId == -1) {
+            if (categoriaId == -1L) { // El ID es de tipo Long
                 val cv = ContentValues().apply {
                     put("nombre", categoria)
                     put("es_fija", 0)
-                    put("saldo", 0f)
+                    put("saldo", 0.0)
                 }
-                val rowId = db.insert("categorias", null, cv)
-                categoriaId = rowId.toInt()
+                categoriaId = db.insert("categorias", null, cv)
             }
 
             val fecha = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -81,110 +98,121 @@ class FinanzasBDHelper(context: Context) :
             }
             db.insert("movimientos", null, values)
 
+            // Actualizamos el saldo de la categoría específica
             actualizarSaldo(categoriaId, tipo, monto, db)
 
+            // Actualizamos el saldo de la categoría "Total"
             val totalId = obtenerIdCategoria("Total", db)
-            if (totalId != -1) {
+            if (totalId != -1L) {
                 actualizarSaldo(totalId, tipo, monto, db)
             }
 
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
-            db.close()
+            // NO cerramos la base de datos aquí: db.close() <-- ELIMINADO
         }
     }
 
-    private fun actualizarSaldo(categoriaId: Int, tipo: String, monto: Float, writableDb: SQLiteDatabase? = null) {
-        val db = writableDb ?: writableDatabase
+    // Esta función ahora es privada y requiere que se le pase la instancia de la BD
+    // para poder ser usada dentro de una transacción.
+    private fun actualizarSaldo(categoriaId: Long, tipo: String, monto: Float, db: SQLiteDatabase) {
         val signo = if (tipo == "ingreso") 1 else -1
-        db.execSQL("UPDATE categorias SET saldo = saldo + ? WHERE id = ?", arrayOf<Any>(signo * monto, categoriaId))
-        if (writableDb == null) db.close()
+        val montoAfectado = signo * monto
+        db.execSQL("UPDATE categorias SET saldo = saldo + ? WHERE id = ?", arrayOf(montoAfectado, categoriaId))
     }
 
-    fun obtenerIdCategoria(nombre: String, dbArg: SQLiteDatabase? = null): Int {
-        val db = dbArg ?: readableDatabase
-        var cursor: Cursor? = null
-        return try {
-            cursor = db.rawQuery("SELECT id FROM categorias WHERE nombre = ?", arrayOf(nombre))
-            if (cursor.moveToFirst()) cursor.getInt(0) else -1
-        } finally {
-            cursor?.close()
-            if (dbArg == null) db.close()
+    // Devuelve Long, ya que los IDs de las filas son Long.
+    // Requiere la instancia de la BD para ser usada en transacciones.
+    private fun obtenerIdCategoria(nombre: String, db: SQLiteDatabase): Long {
+        val cursor = db.rawQuery("SELECT id FROM categorias WHERE nombre = ?", arrayOf(nombre))
+        return cursor.use { // .use cierra el cursor automáticamente
+            if (it.moveToFirst()) it.getLong(0) else -1L
         }
     }
 
     fun agregarCategoria(nombre: String): Boolean {
-        val db = writableDatabase
-        return try {
-            val exists = obtenerIdCategoria(nombre, db) != -1
-            if (!exists) {
-                val values = ContentValues().apply {
-                    put("nombre", nombre)
-                    put("es_fija", 0)
-                    put("saldo", 0f)
-                }
-                db.insert("categorias", null, values) != -1L
-            } else {
-                false
-            }
-        } finally {
-            db.close()
+        val db = this.writableDatabase
+        // Comprobamos si ya existe dentro de la misma conexión
+        if (obtenerIdCategoria(nombre, db) != -1L) {
+            return false
         }
-    }
-
-    fun obtenerCategorias(): List<String> {
-        val lista = mutableListOf<String>()
-        val db = readableDatabase
-        val cursor = db.rawQuery("SELECT nombre FROM categorias", null)
-        while (cursor.moveToNext()) {
-            lista.add(cursor.getString(0))
+        val values = ContentValues().apply {
+            put("nombre", nombre)
+            put("es_fija", 0)
+            put("saldo", 0.0)
         }
-        cursor.close()
-        db.close()
-        return lista
+        return db.insert("categorias", null, values) != -1L
+        // NO cerramos la base de datos: db.close() <-- ELIMINADO
     }
 
     fun obtenerCategoriasConSaldos(): List<Pair<String, Float>> {
         val lista = mutableListOf<Pair<String, Float>>()
-        val db = readableDatabase
+        val db = this.readableDatabase
         val cursor = db.rawQuery("SELECT nombre, saldo FROM categorias ORDER BY es_fija DESC, nombre ASC", null)
-        while (cursor.moveToNext()) {
-            lista.add(cursor.getString(0) to cursor.getFloat(1))
+
+        cursor.use { c -> // Usar .use para garantizar que el cursor se cierre
+            while (c.moveToNext()) {
+                lista.add(c.getString(0) to c.getFloat(1))
+            }
         }
-        cursor.close()
-        db.close()
+        // NO cerramos la base de datos: db.close() <-- ELIMINADO
         return lista
     }
-    fun modificarCategoria(id: Int, nuevoNombre: String): Boolean {
+
+    // ... (El resto de tus funciones como `modificarCategoria` y `obtenerNombreCategoria`
+    // también deben ser modificadas para eliminar `db.close()`)
+    // Ejemplo:
+    fun obtenerCategorias(): List<String> {
+        val lista = mutableListOf<String>()
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT nombre FROM categorias", null)
+        cursor.use {
+            while (it.moveToNext()) {
+                lista.add(it.getString(0))
+            }
+        }
+        return lista
+    }
+    // Pega estas dos funciones DENTRO de tu clase FinanzasBDHelper
+
+    // --- AÑADIDO: Versión pública de obtenerIdCategoria que la UI puede llamar ---
+    fun obtenerIdCategoria(nombre: String): Long {
+        val db = this.readableDatabase
+        return obtenerIdCategoria(nombre, db) // Llama a la versión privada que ya tenías
+    }
+
+    // --- AÑADIDO: La función modificarCategoria que estaba completamente ausente ---
+    fun modificarCategoria(id: Long, nuevoNombre: String): Boolean {
+        // Protección para no modificar un ID inválido
         if (id <= 0) return false
-        val actual = obtenerNombreCategoria(id)
-        if (actual.equals("Ahorro", ignoreCase = true) || actual.equals("Total", ignoreCase = true)) {
+
+        // Protección para no modificar las categorías fijas
+        val nombreActual = obtenerNombreCategoria(id)
+        if (nombreActual.equals("Ahorro", ignoreCase = true) || nombreActual.equals("Total", ignoreCase = true)) {
             return false
         }
-        val db = writableDatabase
+
+        val db = this.writableDatabase
         return try {
             val values = ContentValues().apply { put("nombre", nuevoNombre) }
             val rows = db.update("categorias", values, "id = ?", arrayOf(id.toString()))
-            rows > 0
+            rows > 0 // Devuelve true si se actualizó al menos una fila
         } catch (e: Exception) {
+            // En caso de que el nuevo nombre ya exista (violación de UNIQUE)
             false
         } finally {
-            db.close()
+            // NO cerramos la base de datos
         }
     }
 
-    fun obtenerNombreCategoria(id: Int): String {
+    // --- AÑADIDO: Función auxiliar que necesita modificarCategoria ---
+    fun obtenerNombreCategoria(id: Long): String {
         if (id <= 0) return ""
         val db = readableDatabase
-        var cursor: Cursor? = null
-        return try {
-            cursor = db.rawQuery("SELECT nombre FROM categorias WHERE id = ?", arrayOf(id.toString()))
-            if (cursor.moveToFirst()) cursor.getString(0) else ""
-        } finally {
-            cursor?.close()
-            db.close()
+        val cursor = db.rawQuery("SELECT nombre FROM categorias WHERE id = ?", arrayOf(id.toString()))
+        return cursor.use {
+            if (it.moveToFirst()) it.getString(0) else ""
         }
     }
-
 }
