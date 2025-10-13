@@ -38,7 +38,7 @@ import androidx.compose.material3.*
 
 annotation class GestorFinanzas
 
-//Volando
+//Volando o no volar (juan estubo aqui)
 val Color1 = Color(0xFF884385) // #884385
 val Color2 = Color(0xFF6A3265) // #6a3265
 val Color3 = Color(0xFF4D2146) // #4d2146
@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
                     composable("historial_sueno") { HistorialSueno(navController) }
                     composable("espejo") { Espejo(navController) }
                     composable("tiempo_tareas") { TiempoTareas(navController) }
+                    composable("resumen_sueno") { ResumenSueno(navController) } //lo coloco juan si no funciona ya sabes que es jajajja
 
                     composable("historial") {
                         HistorialEspejo(navController, dbHelper = EspejoDBHelper(context))

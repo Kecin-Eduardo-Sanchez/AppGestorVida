@@ -139,6 +139,20 @@ fun GestorSueno(navController: NavHostController) {
             Spacer(modifier = Modifier.height(10.dp))
 
             Button(
+                onClick = { navController.navigate("resumen_sueno") },
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+
+                ),
+                modifier = Modifier.fillMaxWidth()
+                ) {
+                Text("Ver resumen semanal")
+
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
                 onClick = { navController.navigate("home") },
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(
