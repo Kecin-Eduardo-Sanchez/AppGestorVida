@@ -1,6 +1,6 @@
 package com.example.prueba1
 
-import android.app.DatePickerDialog
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.prueba1.data.SuenoDBHelper
+import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -20,33 +21,20 @@ import java.util.*
 fun GestorSueno(navController: NavHostController) {
     val context = LocalContext.current
     val dbHelper = remember { SuenoDBHelper(context) }
+    val prefs = context.getSharedPreferences("sueño_prefs", Context.MODE_PRIVATE)
 
-    // Horas y minutos separados
-    var horaInicio by remember { mutableStateOf("") }
-    var minutoInicio by remember { mutableStateOf("") }
-    var horaFin by remember { mutableStateOf("") }
-    var minutoFin by remember { mutableStateOf("") }
+    val formatoHora = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val formatoFecha = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-    // Fecha
-    val calendar = Calendar.getInstance()
-    var fecha by remember { mutableStateOf("") }
 
-    // Tipo de sueño (desplegable)
-    val opcionesSueno = listOf("Noche", "Siesta", "Madrugada", "Otro")
-    var tipoSueno by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+    var durmiendo by remember { mutableStateOf(prefs.getBoolean("durmiendo", false)) }
+    var horaInicio by remember { mutableStateOf(prefs.getString("hora_inicio", null)) }
+    var fechaInicio by remember { mutableStateOf(prefs.getString("fecha_inicio", null)) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Gestor de Sueño")
-                    }
-                },
+                title = { Text("Gestor de Sueño") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFF4527A0),
                     titleContentColor = Color.White
@@ -59,136 +47,82 @@ fun GestorSueno(navController: NavHostController) {
                 .padding(padding)
                 .padding(16.dp)
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = horaInicio,
-                    onValueChange = { horaInicio = it },
-                    label = { Text("Hora inicio") },
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = minutoInicio,
-                    onValueChange = { minutoInicio = it },
-                    label = { Text("Minuto inicio") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            if (!durmiendo) {
+                Button(
+                    onClick = {
+                        durmiendo = true
+                        val ahora = Calendar.getInstance()
+                        horaInicio = formatoHora.format(ahora.time)
+                        fechaInicio = formatoFecha.format(ahora.time)
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = horaFin,
-                    onValueChange = { horaFin = it },
-                    label = { Text("Hora fin") },
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = minutoFin,
-                    onValueChange = { minutoFin = it },
-                    label = { Text("Minuto fin") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+                        prefs.edit().apply {
+                            putBoolean("durmiendo", true)
+                            putString("hora_inicio", horaInicio)
+                            putString("fecha_inicio", fechaInicio)
+                            apply()
+                        }
 
-            // Menú desplegable para tipo de sueño
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                OutlinedTextField(
-                    value = tipoSueno,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Tipo de sueño") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                        Toast.makeText(context, "Sueño iniciado a las $horaInicio", Toast.LENGTH_SHORT).show()
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4527A0),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    opcionesSueno.forEach { opcion ->
-                        DropdownMenuItem(
-                            text = { Text(opcion) },
-                            onClick = {
-                                tipoSueno = opcion
-                                expanded = false
-                            }
+                    Text("Iniciar sueño")
+                }
+            } else {
+                Button(
+                    onClick = {
+                        val ahora = Calendar.getInstance()
+                        val horaFin = formatoHora.format(ahora.time)
+                        val fechaFin = formatoFecha.format(ahora.time)
+
+                        val inicio = formatoHora.parse(horaInicio!!)
+                        val fin = formatoHora.parse(horaFin)
+                        var duracion = (fin.time - inicio.time) / (1000f * 60f * 60f)
+                        if (duracion < 0) duracion += 24f // si pasó medianoche
+
+                        dbHelper.insertarRegistro(
+                            horaInicio!!,
+                            horaFin,
+                            "Noche",
+                            fechaInicio ?: fechaFin,
+                            duracion
                         )
-                    }
+
+
+                        prefs.edit().clear().apply()
+
+                        Toast.makeText(
+                            context,
+                            "Sueño registrado: ${"%.2f".format(duracion)} h",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        durmiendo = false
+                        horaInicio = null
+                        fechaInicio = null
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF8E24AA),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Finalizar sueño")
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Selector de fecha
-            Button(onClick = {
-                val datePicker = DatePickerDialog(
-                    context,
-                    { _, year, month, dayOfMonth ->
-                        fecha = "$year-${month + 1}-$dayOfMonth"
-                    },
-                    calendar.get(Calendar.YEAR),
-                    calendar.get(Calendar.MONTH),
-                    calendar.get(Calendar.DAY_OF_MONTH)
-                )
-                datePicker.show()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (fecha.isNotBlank()) "Fecha: $fecha" else "Seleccionar fecha")
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = {
-                    if (
-                        horaInicio.isNotBlank() &&
-                        minutoInicio.isNotBlank() &&
-                        horaFin.isNotBlank() &&
-                        minutoFin.isNotBlank() &&
-                        tipoSueno.isNotBlank() &&
-                        fecha.isNotBlank()
-                    ) {
-                        val horaInicioTotal = "${horaInicio.padStart(2, '0')}:${minutoInicio.padStart(2, '0')}"
-                        val horaFinTotal = "${horaFin.padStart(2, '0')}:${minutoFin.padStart(2, '0')}"
-
-                        val id = dbHelper.insertarRegistro(horaInicioTotal, horaFinTotal, tipoSueno, fecha)
-                        if (id > 0) {
-                            Toast.makeText(context, "Registro guardado", Toast.LENGTH_SHORT).show()
-                            horaInicio = ""
-                            minutoInicio = ""
-                            horaFin = ""
-                            minutoFin = ""
-                            tipoSueno = ""
-                            fecha = ""
-                        } else {
-                            Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4527A0),
-                    contentColor = Color.White
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Guardar")
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             Button(
                 onClick = { navController.navigate("historial_sueno") },
