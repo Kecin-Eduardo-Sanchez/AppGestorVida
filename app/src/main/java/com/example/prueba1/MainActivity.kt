@@ -98,7 +98,7 @@ fun PantallaInicial(navController: NavHostController) {
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Organizador de Vida", color = Color.White)
+                        Text("Vitae", color = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color1)
@@ -112,7 +112,7 @@ fun PantallaInicial(navController: NavHostController) {
                 .background(fondo)
         ) {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2), // ✅ siempre 2 columnas
+                columns = GridCells.Fixed(2),
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
@@ -129,7 +129,7 @@ fun PantallaInicial(navController: NavHostController) {
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1f) // ✅ asegura que cada cuadro sea cuadrado
+                            .aspectRatio(1f)
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize(),

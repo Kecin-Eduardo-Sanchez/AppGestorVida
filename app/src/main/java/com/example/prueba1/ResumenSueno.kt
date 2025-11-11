@@ -2,6 +2,8 @@ package com.example.prueba1
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.prueba1.data.SuenoDBHelper
 import java.text.DecimalFormat
+
+// Colores del tema morado
+private val Fondo = Color(0xFF1A1528)
+private val MoradoOscuro = Color(0xFF311B92)
+private val MoradoMedio = Color(0xFF7E57C2)
+private val MoradoSuave = Color(0xFFD1C4E9)
+private val Acento = Color(0xFFE040FB)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,12 +69,18 @@ fun ResumenSueno(navController: NavHostController) {
         topBar = {
             TopAppBar(
                 title = { Text("Resumen de Sueño") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF4527A0),
+                    containerColor = MoradoOscuro,
                     titleContentColor = Color.White
                 )
             )
-        }
+        },
+        containerColor = Fondo
     ) { padding ->
         Column(
             modifier = Modifier
@@ -79,12 +94,12 @@ fun ResumenSueno(navController: NavHostController) {
             Text(
                 text = "Promedio semanal",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                color = MoradoSuave
             )
             Text(
                 text = "${decimalFormat.format(promedio)} h por noche",
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color(0xFF8E24AA),
+                color = Acento,
                 modifier = Modifier.padding(8.dp)
             )
 
@@ -92,13 +107,13 @@ fun ResumenSueno(navController: NavHostController) {
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5))
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MoradoOscuro.copy(alpha = 0.9f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Total dormido en la semana: ${decimalFormat.format(totalHoras)} h")
-                    Text("Día con más sueño: $diaMax (${decimalFormat.format(maxHoras)} h)")
-                    Text("Día con menos sueño: $diaMin (${decimalFormat.format(minHoras)} h)")
+                    Text("Total dormido en la semana: ${decimalFormat.format(totalHoras)} h", color = MoradoSuave)
+                    Text("Día con más sueño: $diaMax (${decimalFormat.format(maxHoras)} h)", color = Color.White)
+                    Text("Día con menos sueño: $diaMin (${decimalFormat.format(minHoras)} h)", color = Color.White)
                 }
             }
 
@@ -107,7 +122,6 @@ fun ResumenSueno(navController: NavHostController) {
             Text(
                 text = mensaje,
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.DarkGray,
                 modifier = Modifier.padding(8.dp)
             )
 
@@ -115,9 +129,9 @@ fun ResumenSueno(navController: NavHostController) {
 
             Button(
                 onClick = { navController.navigate("historial_sueno") },
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF8E24AA),
+                    containerColor = MoradoMedio,
                     contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
@@ -125,13 +139,13 @@ fun ResumenSueno(navController: NavHostController) {
                 Text("Ver historial completo")
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 onClick = { navController.navigate("home") },
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Gray,
+                    containerColor = Color(0xFF4A4458),
                     contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth()
